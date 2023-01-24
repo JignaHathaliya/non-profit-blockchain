@@ -125,7 +125,7 @@ Mappings:
       FABRICSAMPLESBRANCH: "release-1.4"
     "2.2":
       DOCKERCOMPOSE: "1.20.0"
-      #GO: "1.14.2"
+      GO: "1.14.2"
       NodeJs: "18.6.0"
       FABRICTOOLS: "2.2.4"
       FABRICCA: "1.4.7"
@@ -162,10 +162,10 @@ Resources:
               curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
               chmod a+x /usr/local/bin/docker-compose
               yum install libtool -y
-           #  wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
-              wget https://nodejs.org/download/release/v${NODE_VERSION}/node-{NODE_VERSION}-linux-arm64.tar.gz
-            #  tar -xzf go${GO_VERSION}.linux-amd64.tar.gz
-               tar -xzf node-{NODE_VERSION}.linux-amd64.tar.gz
+              wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+              wget https://nodejs.org/download/release/v18.6.0/node-v18.6.0-linux-arm64.tar.gz
+               tar -xzf go${GO_VERSION}.linux-amd64.tar.gz
+               tar -xzf node-v18.6.0-linux-arm64.tar.gz
             #  mv go /usr/local
                mv node /usr/local
               yum install libtool-ltdl-devel -y
