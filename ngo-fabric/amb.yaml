@@ -1,248 +1,241 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'This template creates an EC2 instance in your VPC. It attaches provided security rules
-              to the instance to communicate with an existing Amazon Managed Blockchain network.
-              Additionally, the instance will be bootstrapped with all of the required dependencies to communicate with
-              entities in the blockchain network.'
-
+AWSTemplateFormatVersion: 2010-09-09
+Description: Amazon Managed Blockchain. Creates network with a single member and peer node
 Metadata:
+  LICENSE: Apache License Version 2.0
   AWS::CloudFormation::Interface:
     ParameterGroups:
-      - Label:
-          default: EC2 instance parameters
+      -
+        Label:
+          default: Network configuration
         Parameters:
-          - SubnetID
-          - EC2SecurityGroup
-          - EC2KeyPairName
-          - InstanceType
-          - InstanceProfileName
-      - Label:
-          default: Managed Blockchain parameters
+          - NetworkName
+          - NetworkDescription
+          - Edition
+          - ThresholdPercentage
+          - ThresholdComparator
+          - ProposalDurationInHours
+      -
+        Label:
+          default: First member configuration
         Parameters:
-          - Version
-          - MemberID
-      - Label:
-          default: Hyperledger Fabric parameters
-        Parameters:
-          - FabricCAEndpoint
-          - OrderingServiceEndpoint
-          - PeerNodeEndpoint
-
-
+          - MemberName
+          - MemberDescription
+          - MemberAdminUsername
+          - MemberAdminPassword
+          - PeerNodeAvailabilityZone
+          - PeerNodeInstanceType
+    ParameterLabels:
+      NetworkName:
+        default: Network name
+      NetworkDescription:
+        default: Network description
+      Framework:
+        default: Framework
+      FrameworkVersion:
+        default: Framework version
+      Edition:
+        default: Edition
+      ThresholdPercentage:
+        default: Threshold percentage
+      ThresholdComparator:
+        default: Threshold comparator
+      ProposalDurationInHours:
+        default: Proposal duration
+      MemberName:
+        default: Member name
+      MemberDescription:
+        default: Member description
+      MemberAdminUsername:
+        default: Member admin username
+      MemberAdminPassword:
+        default: Member admin password
+      PeerNodeAvailabilityZone:
+        default: Peer node Availability Zone
+      PeerNodeInstanceType:
+        default: Instance type
 Parameters:
-  Version:
-    Description: The version of the blockchain framework that the network uses.
+  NetworkName:
+    Description: The name of your Amazon Managed Blockchain network.
+    AllowedPattern: "^[0-9a-zA-Z]+$"
+    ConstraintDescription: Network name must be alphanumeric and cannot contain spaces.
+    Type: String
+    Default: ngo
+  NetworkDescription:
+    Description: An optional description of your network.
+    Type: String
+    Default: Network for tracking donations made to non-profit organisations
+  Framework:
+    Description: The blockchain protocol to use, such as Hyperledger Fabric
+    Type: String
+    Default: HYPERLEDGER_FABRIC
+  FrameworkVersion:
+    Description: The version of the blockchain protocol to use
     Type: String
     Default: 2.2
-    AllowedValues: [1.2, 1.4, 2.2]
-    ConstraintDescription: must be a version supported by Amazon Managed Blockchain.
-  SubnetID:
-    Description: The ID of an existing subnet into which the EC2 instance is launched. Must be a public subnet.
-    Type: AWS::EC2::Subnet::Id
-  EC2SecurityGroup:
-    Description: The ID of an existing security group to attach to the instance. It must be available in the subnet you specify and allow traffic from the VPC endpoint for your blockchain network.
-    Type: AWS::EC2::SecurityGroup::Id
-  EC2KeyPairName:
-    Description:  Name of an existing EC2 key pair to enable SSH access to the instance.
-    Type: AWS::EC2::KeyPair::KeyName
-    ConstraintDescription: must be the name of an existing EC2 KeyPair.
-  InstanceType:
-    Description: EC2 instance type to use for the client hardware
+  Edition:
+    Description: Setting that determines the number of peer nodes per member and the selection of instance types that can be used for them.
+    ConstraintDescription: Must be STARTER or STANDARD
+    Default: STARTER
+    AllowedValues:
+      - STARTER
+      - STANDARD
     Type: String
-    Default: t3.small
-    AllowedValues: [t2.nano, t2.micro, t2.small, t2.medium, t2.large, t2.xlarge, t2.2xlarge,
-                    t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
-                    m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
-                    m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge,
-                    c5.large, c5.xlarge, c5.2xlarge, c5.4xlarge, c5.9xlarge,
-                    g3.8xlarge,
-                    r5.large, r5.xlarge, r5.2xlarge, r5.4xlarge, r3.12xlarge,
-                    i3.xlarge, i3.2xlarge, i3.4xlarge, i3.8xlarge,
-                    d2.xlarge, d2.2xlarge, d2.4xlarge, d2.8xlarge]
-    ConstraintDescription: must be a valid EC2 instance type.
-  InstanceProfileName:
-    Description: (Optional) The name of the Instance Profile to attach to the EC2 instance.
+  MemberName:
+    Description: The name of the first member in your Amazon Managed Blockchain network.
+    AllowedPattern: "^[0-9a-zA-Z]+$"
+    ConstraintDescription: MemberName must be alphanumeric.
     Type: String
-    Default: ''
-  FabricCAEndpoint:
-    Description: The endpoint used to access the certificate authority within a membership. Of the format ca.<member-id>.<network-id>.managedblockchain.<region>.amazonaws.com:<port>
+    Default: member
+  MemberDescription:
+    Description: An optional description of your first member.
     Type: String
-  MemberID:
-    Description: Your member id for the network.
+    Default: First member 
+  MemberAdminUsername:
+    Description: The user name of your first member's admin user.
+    AllowedPattern: '^[0-9a-zA-Z/]+$'
+    ConstraintDescription: AdminUsername must contain only uppercase and lowercase letters and numbers.
     Type: String
-  OrderingServiceEndpoint:
-    Description: The endpoint of the ordering service for the network. Of the format orderer.<network-id>.managedblockchain.<region>.amazonaws.com:<port>
+    Default: admin
+  MemberAdminPassword:
+    Description: The password of your first member's admin user.
+    MinLength: 8
+    MaxLength: 32
+    AllowedPattern: "^(?!.*?['\"\\/ @])(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).*{8,32}$"
+    ConstraintDescription: >-
+      AdminPassword must be at least 8 characters long and must contain at least one
+      uppercase character, one lowercase character, and one digit. It must not
+      contain ', ", \, /, @ or spaces. It must not exceed 32 characters in length.
     Type: String
-  PeerNodeEndpoint:
-    Description: The endpoint used to communicate with the node on the network. Of the format <node-id>.<member-id>.<network-id>.managedblockchain.<region>.amazonaws.com:<port>
+    NoEcho: true
+    Default: Adminpwd1!
+  ThresholdPercentage:
+    Description: The percentage of favorable votes needed to approve a blockchain proposal.
+    MinValue: 1
+    MaxValue: 100
+    Type: Number
+    Default: 50
+  ThresholdComparator:
+    Description: >-
+          This comparator is used to determine how the vote percentages are compared
+          with the threshold. If it is GREATER_THAN, then the percentage of favorable
+          votes must exceed the ThresholdPercentage for a proposal to pass. If it is
+          GREATER_THAN_OR_EQUAL_TO, then the percentage of favorable votes must at
+          least be equal to the threshold for a proposal to pass.
+    ConstraintDescription: Must be GREATER_THAN or GREATER_THAN_OR_EQUAL_TO
+    Default: GREATER_THAN
+    AllowedValues:
+      - GREATER_THAN
+      - GREATER_THAN_OR_EQUAL_TO
     Type: String
-
-
-Conditions:
-  HasInstanceProfileName:
-    !Not [ !Equals [ !Ref 'InstanceProfileName', '' ] ]
-
-Mappings:
-  AWSRegionToAMI:
-    ap-northeast-2:
-      HVM64: ami-00dc207f8ba6dc919
-    ap-northeast-1:
-      HVM64: ami-00a5245b4816c38e6
-    ap-southeast-1:
-      HVM64: ami-05b3bcf7f311194b3
-    eu-west-1:
-      HVM64: ami-08935252a36e25f85
-    eu-west-2:
-      HVM64: ami-01419b804382064e4
-    us-east-1:
-      HVM64: ami-0080e4c5bc078760e
-  AWSRegionToCertificateUrl:
-    ap-northeast-2:
-      TLS: https://s3.ap-northeast-2.amazonaws.com/ap-northeast-2.managedblockchain/etc/managedblockchain-tls-chain.pem
-    ap-northeast-1:
-      TLS: https://s3.ap-northeast-1.amazonaws.com/ap-northeast-1.managedblockchain/etc/managedblockchain-tls-chain.pem
-    ap-southeast-1:
-      TLS: https://s3.ap-southeast-1.amazonaws.com/ap-southeast-1.managedblockchain/etc/managedblockchain-tls-chain.pem
-    eu-west-1:
-      TLS: https://s3.eu-west-1.amazonaws.com/eu-west-1.managedblockchain/etc/managedblockchain-tls-chain.pem
-    eu-west-2:
-      TLS: https://s3.eu-west-2.amazonaws.com/eu-west-2.managedblockchain/etc/managedblockchain-tls-chain.pem
-    us-east-1:
-      TLS: https://s3.us-east-1.amazonaws.com/us-east-1.managedblockchain/etc/managedblockchain-tls-chain.pem
-  FrameworkVersionToPackageVersion:
-    "1.2":
-      DOCKERCOMPOSE: "1.20.0"
-      #GO: "1.10.3"
-      NodeJs: "18.4.0"
-      FABRICTOOLS: "1.2.1"
-      FABRICCA: "1.2.1"
-      FABRICSAMPLESBRANCH: "release-1.2"
-    "1.4":
-      DOCKERCOMPOSE: "1.20.0"
-      #GO: "1.14.2"
-      NodeJs: "18.6.0"
-      FABRICTOOLS: "1.4.7"
-      FABRICCA: "1.4.7"
-      FABRICSAMPLESBRANCH: "release-1.4"
-    "2.2":
-      DOCKERCOMPOSE: "1.20.0"
-      #GO: "1.14.2"
-      NodeJs: "18.6.0"
-      FABRICTOOLS: "2.2.4"
-      FABRICCA: "1.4.7"
-      FABRICSAMPLESBRANCH: "release-2.2"
-
+  ProposalDurationInHours:
+    Description: The number of hours a proposal can be voted on.
+    MinValue: 1
+    MaxValue: 168
+    Default: 24
+    Type: Number
+  PeerNodeAvailabilityZone:
+    Description: The Availability Zone for your first peer node.
+    Default: us-east-1a
+    Type: String
+  PeerNodeInstanceType:
+    Description: The type of compute instance to use for your peer nodes.
+    Default: bc.t3.small
+    Type: String
+    AllowedValues:
+      - bc.t3.small
+      - bc.t3.medium
+      - bc.t3.large
+      - bc.t3.xlarge
+      - bc.m5.large
+      - bc.m5.xlarge
+      - bc.m5.2xlarge
+      - bc.m5.4xlarge
+      - bc.c5.large
+      - bc.c5.xlarge
+      - bc.c5.2xlarge
+      - bc.c5.4xlarge
+    ConstraintDescription: >-
+      If Edition is STARTER, then this value must be bc.t3.small
+      or bc.t3.medium.
 Resources:
-  EC2Instance:
-    Type: AWS::EC2::Instance
+  Member:
+    Type: "AWS::ManagedBlockchain::Member"
     Properties:
-      InstanceType: !Ref 'InstanceType'
-      KeyName: !Ref 'EC2KeyPairName'
-      ImageId: !FindInMap [ AWSRegionToAMI, !Ref "AWS::Region", HVM64 ]
-      IamInstanceProfile: !If [ HasInstanceProfileName, !Ref 'InstanceProfileName', !Ref "AWS::NoValue" ]
-      NetworkInterfaces:
-        - AssociatePublicIpAddress: "true"
-          DeviceIndex: "0"
-          GroupSet: [ !Ref 'EC2SecurityGroup' ]
-          SubnetId: !Ref 'SubnetID'
-      Tags:
-        - Key: 'Name'
-          Value: 'HyperledgerFabricClient'
-      UserData:
-        Fn::Base64:
-          Fn::Sub:
-            - |
-              #!/bin/bash
-              set -e
-              set -x
-
-              cd /home/ec2-user
-
-              yum update -y
-              yum install -y docker
-              service docker start
-              usermod -a -G docker ec2-user
-
-              curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-              chmod a+x /usr/local/bin/docker-compose
-              yum install libtool -y
-           #  wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
-              wget https://nodejs.org/download/release/v${NODE_VERSION}/node-{NODE_VERSION}-linux-arm64.tar.gz
-            #  tar -xzf go${GO_VERSION}.linux-amd64.tar.gz
-               tar -xzf node-{NODE_VERSION}.linux-amd64.tar.gz
-            #  mv go /usr/local
-               mv node /usr/local
-              yum install libtool-ltdl-devel -y
-              pip install --upgrade awscli
-              yum install git -y
-
-              echo 'export NODEROOT=/usr/local/node
-              export NODEPATH=/home/ec2-user/node
-              export PATH=$NODEROOT/bin:$PATH' >> /home/ec2-user/.bash_profile
-              source /home/ec2-user/.bash_profile
-
-              wget https://github.com/hyperledger/fabric-ca/releases/download/v${FABRIC_CA_VERSION}/hyperledger-fabric-ca-linux-amd64-${FABRIC_CA_VERSION}.tar.gz
-              tar -xzf hyperledger-fabric-ca-linux-amd64-${FABRIC_CA_VERSION}.tar.gz
-              cd /home/ec2-user
-
-              echo 'export PATH=$PATH:/home/ec2-user/bin' >> /home/ec2-user/.bash_profile
-              echo 'export MSP_PATH=/opt/home/admin-msp
-              export MSP=${MEMBER_ID}
-              export ORDERER=${ORDERING_SERVICE_ENDPOINT}
-              export PEER=${PEER_NODE_ENDPOINT}
-              export CA_ENDPOINT=${FABRIC_CA_ENDPOINT}' >> /home/ec2-user/.bash_profile
-              source /home/ec2-user/.bash_profile
-
-
-              # Setup Fabric-ca client profile
-              mkdir -p /home/ec2-user/.fabric-ca-client
-              touch /home/ec2-user/.fabric-ca-client/fabric-ca-client-config.yaml
-
-              echo '
-              #############################################################################
-              # Client Configuration
-              #############################################################################
-
-              # URL of the Fabric-ca-server (default: http://localhost:7054)
-                                url: https://${FABRIC_CA_ENDPOINT}
-
-              # Membership Service Provider (MSP) directory
-              # This is useful when the client is used to enroll a peer or orderer, so
-              # that the enrollment artifacts are stored in the format expected by MSP.
-                                mspdir: /home/ec2-user/admin-msp
-
-              #############################################################################
-              #    TLS section for secure socket connection
-              #
-              #  certfiles - PEM-encoded list of trusted root certificate files
-              #############################################################################
-                                tls:
-                                  # TLS section for secure socket connection
-                                  certfiles: /home/ec2-user/managedblockchain-tls-chain.pem
-              ' > /home/ec2-user/.fabric-ca-client/fabric-ca-client-config.yaml
-
-              chmod 666 /home/ec2-user/.fabric-ca-client/fabric-ca-client-config.yaml
-
-              # Download TLS cert
-              wget ${TLS_CERT_URL}
-
-              # Download sample chaincode from github
-              git clone -b ${FABRIC_SAMPLES_BRANCH} https://github.com/hyperledger/fabric-samples.git
-
-              # Bake in some fabric related ENV variables for convenience
-              echo 'export ORDERER=${ORDERING_SERVICE_ENDPOINT}' >> /home/ec2-user/.bash_profile
-
-              echo 'version: '"'2'"'
-              services:
-               cli:
-                 container_name: cli
-                 image: hyperledger/fabric-tools:${FABRIC_TOOLS_VERSION}
-                 tty: true
-                 environment:
-                   - NODEPATH=/opt/nodepath
-                   - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-                   - CORE_LOGGING_LEVEL=info # Set logging level to debug for more verbose logging
-                   - CORE_PEER_ID=cli
-                   - CORE_CHAINCODE_KEEPALIVE=10
+      NetworkConfiguration:
+        Name: !Ref NetworkName
+        Description: !Sub "network-${NetworkName}-${AWS::AccountId}"
+        Framework: !Ref Framework
+        FrameworkVersion: !Ref FrameworkVersion
+        NetworkFrameworkConfiguration:
+          NetworkFabricConfiguration:
+            Edition: !Ref Edition
+        VotingPolicy:
+          ApprovalThresholdPolicy:
+            ThresholdPercentage: !Ref ThresholdPercentage
+            ProposalDurationInHours: !Ref ProposalDurationInHours
+            ThresholdComparator: !Ref ThresholdComparator
+      MemberConfiguration:
+        Name: !Sub "member-${NetworkName}"
+        Description: !Sub "member-${NetworkName}-${AWS::AccountId}"
+        MemberFrameworkConfiguration:
+          MemberFabricConfiguration:
+            AdminUsername: !Ref MemberAdminUsername
+            AdminPassword: !Ref MemberAdminPassword
+  MemberPeerNode:
+    Type: "AWS::ManagedBlockchain::Node"
+    Properties:
+      NetworkId: !GetAtt Member.NetworkId
+      MemberId: !GetAtt Member.MemberId
+      NodeConfiguration:
+        InstanceType: !Ref PeerNodeInstanceType
+        AvailabilityZone: !Ref PeerNodeAvailabilityZone
+    DependsOn: Member
+Outputs:
+  MemberId:
+    Description: member id 
+    Value: !GetAtt Member.MemberId
+    Export:
+      Name: !Sub "${NetworkName}-MemberId"
+  MemberName:
+    Description: member name 
+    Value: !Sub "member-${NetworkName}"
+    Export:
+      Name: !Sub "${NetworkName}-MemberName"
+  NetworkId:
+    Description: network id 
+    Value: !GetAtt Member.NetworkId
+    Export:
+      Name: !Sub "${NetworkName}-NetworkId"
+  NetworkName:
+    Description: network name 
+    Value: !Ref NetworkName
+    Export:
+      Name: !Sub "${NetworkName}-NetworkName"
+  Framework:
+    Description: blockchain protocol, such as Hyperledger Fabric
+    Value: !Ref Framework
+    Export:
+      Name: !Sub "${NetworkName}-Framework"
+  FrameworkVersion:
+    Description: version of the blockchain protocol
+    Value: !Ref FrameworkVersion
+    Export:
+      Name: !Sub "${NetworkName}-FrameworkVersion"
+  MemberPeerNodeId:
+    Description: member peer node Id
+    Value: !GetAtt MemberPeerNode.NodeId
+    Export:
+      Name: !Sub "${NetworkName}-MemberPeerNodeId"
+  MemberAdminUsername:
+    Description: fabric admin user name
+    Value: !Ref MemberAdminUsername
+    Export:
+      Name: !Sub "${NetworkName}-MemberAdminUsername"
+  MemberAdminPassword:
+    Description: fabric admin password
+    Value: !Ref MemberAdminPassword
+    Export:
+      Name: !Sub "${NetworkName}-MemberAdminPassword"                   - CORE_CHAINCODE_KEEPALIVE=10
                    - CORE_PEER_LOCALMSPID=${MEMBER_ID}
                    - CORE_PEER_MSPCONFIGPATH=/opt/home/admin-msp
                    - CORE_PEER_ADDRESS=${PEER_NODE_ENDPOINT}
