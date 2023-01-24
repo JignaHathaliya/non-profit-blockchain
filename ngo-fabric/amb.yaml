@@ -71,7 +71,7 @@ Parameters:
   FrameworkVersion:
     Description: The version of the blockchain protocol to use
     Type: String
-    Default: 2.2
+    Default: 1.4
   Edition:
     Description: Setting that determines the number of peer nodes per member and the selection of instance types that can be used for them.
     ConstraintDescription: Must be STARTER or STANDARD
@@ -235,45 +235,5 @@ Outputs:
     Description: fabric admin password
     Value: !Ref MemberAdminPassword
     Export:
-      Name: !Sub "${NetworkName}-MemberAdminPassword"                   - CORE_CHAINCODE_KEEPALIVE=10
-                   - CORE_PEER_LOCALMSPID=${MEMBER_ID}
-                   - CORE_PEER_MSPCONFIGPATH=/opt/home/admin-msp
-                   - CORE_PEER_ADDRESS=${PEER_NODE_ENDPOINT}
-                   - CORE_PEER_TLS_ROOTCERT_FILE=/opt/home/managedblockchain-tls-chain.pem
-                   - CORE_PEER_TLS_ENABLED=true
-                 working_dir: /opt/home
-                 command: /bin/bash
-                 volumes:
-                   - /var/run/:/host/var/run/
-                   - /home/ec2-user/fabric-samples/chaincode:/opt/nodepath/src/github.com/
-                   - /home/ec2-user:/opt/home' > docker-compose-cli.yaml
-
-              newgrp `id -gn`
-              /usr/local/bin/docker-compose -f docker-compose-cli.yaml up -d
-
-            - {
-                DOCKER_COMPOSE_VERSION: !FindInMap [ FrameworkVersionToPackageVersion, !Ref "Version", DOCKERCOMPOSE ],
-                NODE_VERSION: !FindInMap [ FrameworkVersionToPackageVersion, !Ref "Version", NODE ],
-                FABRIC_CA_VERSION: !FindInMap [ FrameworkVersionToPackageVersion, !Ref "Version", FABRICCA ],
-                TLS_CERT_URL: !FindInMap [ AWSRegionToCertificateUrl, !Ref "AWS::Region", TLS ],
-                FABRIC_TOOLS_VERSION: !FindInMap [ FrameworkVersionToPackageVersion, !Ref "Version", FABRICTOOLS ],
-                FABRIC_SAMPLES_BRANCH: !FindInMap [ FrameworkVersionToPackageVersion, !Ref "Version", FABRICSAMPLESBRANCH ],
-                MEMBER_ID: !Ref "MemberID",
-                PEER_NODE_ENDPOINT: !Ref "PeerNodeEndpoint",
-                ORDERING_SERVICE_ENDPOINT: !Ref "OrderingServiceEndpoint",
-                FABRIC_CA_ENDPOINT: !Ref "FabricCAEndpoint"
-            }
-
-Outputs:
-  InstanceId:
-    Description: InstanceId of your EC2 client instance
-    Value: !Ref 'EC2Instance'
-  AZ:
-    Description: Availability Zone of your EC2 client instance
-    Value: !GetAtt [EC2Instance, AvailabilityZone]
-  PublicDNS:
-    Description: Public DNSName of your EC2 client instance
-    Value: !GetAtt [EC2Instance, PublicDnsName]
-  PublicIP:
-    Description: Public IP address of your EC2 client instance
-    Value: !GetAtt [EC2Instance, PublicIp]
+      Name: !Sub "${NetworkName}-MemberAdminPassword"
+  
