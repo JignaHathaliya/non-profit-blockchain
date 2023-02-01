@@ -681,3 +681,4 @@ Outputs:
     Description:                                  VPC Endpoint ID
     Value:
       !Ref                                        BlockchainWorkshopVPCEndpoint
+       
